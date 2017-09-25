@@ -279,28 +279,27 @@ def find_pull_request_template():
 def get_pr_template_message(template):
     fd, bodyfilename = tempfile.mkstemp()
     shutil.copy(template, bodyfilename)
-    status = os.system(editor + " " + bodyfilename)
+    status = os.system(get_editor() + " " + bodyfilename)
     if status != 0:
         raise RuntimeError("Editor exited with status code %d" % status)
 
     with open(bodyfilename, "r") as body:
         content = body.read().strip()
     os.unlink(bodyfilename)
-    return parse_pr_message(content)
+    return content
 
 
 def edit_title_and_message(title, message):
-    editor = get_editor()
     pr_template = find_pull_request_template()
     if pr_template:
         content = get_pr_template_message(pr_template)
-        return content
+        return title, content
 
     fd, bodyfilename = tempfile.mkstemp()
     with open(bodyfilename, "w") as body:
         body.write(title + "\n\n")
         body.write(message + "\n")
-    status = os.system(editor + " " + bodyfilename)
+    status = os.system(get_editor() + " " + bodyfilename)
     if status != 0:
         raise RuntimeError("Editor exited with status code %d" % status)
 
