@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import glob
 import itertools
 import logging
 import netrc
 import operator
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -245,21 +247,42 @@ def download_pull_request(g, repo, target_remote, pull_number):
         _run_shell_command(["git", "reset", "--hard", "FETCH_HEAD"])
 
 
-def edit_title_and_message(title, message):
+def get_editor():
     editor = os.getenv("EDITOR")
     if not editor:
         LOG.warning(
             "$EDITOR is unset, you will not be able to edit the "
             "pull-request message")
         editor = "cat"
+    return editor
 
+
+def find_pull_request_template():
+    pr_template_paths = [
+        "./",
+        "./.github",
+        "./docs",
+    ]
+    for path in pr_template_paths:
+        templates = glob.glob("{}/PULL_REQUEST_TEMPLATE*".format(path))
+        if templates:
+            return templates[0]
+
+
+def edit_title_and_message(title, message):
+    editor = get_editor()
+    pr_template = find_pull_request_template()
     fd, bodyfilename = tempfile.mkstemp()
-    with open(bodyfilename, "w") as body:
-        body.write(title + "\n\n")
-        body.write(message + "\n")
+    if pr_template:
+        shutil.copy(pr_template, bodyfilename)
+    else:
+        with open(bodyfilename, "w") as body:
+            body.write(title + "\n\n")
+            body.write(message + "\n")
     status = os.system(editor + " " + bodyfilename)
     if status != 0:
         raise RuntimeError("Editor exited with status code %d" % status)
+
     with open(bodyfilename, "r") as body:
         content = body.read().strip()
     os.unlink(bodyfilename)
