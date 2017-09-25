@@ -151,6 +151,13 @@ def git_get_title_and_message(begin, end):
     else:
         title = "Pull request for " + end
         message = "\n".join(titles)
+
+    pr_template = find_pull_request_template()
+    if pr_template:
+        LOG.warning(
+            "This project ask to you a standardized pull request message")
+        message = get_pr_template_message(pr_template)
+
     return (len(titles), title, message)
 
 
@@ -259,26 +266,40 @@ def get_editor():
 
 def find_pull_request_template():
     pr_template_paths = [
-        "./",
-        "./.github",
-        "./docs",
+        os.getcwd(),
+        os.path.join(os.getcwd(), ".github"),
+        os.path.join(os.getcwd(), "docs"),
     ]
     for path in pr_template_paths:
-        templates = glob.glob("{}/PULL_REQUEST_TEMPLATE*".format(path))
+        templates = glob.glob(os.path.join(path, "PULL_REQUEST_TEMPLATE*"))
         if templates:
             return templates[0]
+
+
+def get_pr_template_message(template):
+    fd, bodyfilename = tempfile.mkstemp()
+    shutil.copy(template, bodyfilename)
+    status = os.system(editor + " " + bodyfilename)
+    if status != 0:
+        raise RuntimeError("Editor exited with status code %d" % status)
+
+    with open(bodyfilename, "r") as body:
+        content = body.read().strip()
+    os.unlink(bodyfilename)
+    return parse_pr_message(content)
 
 
 def edit_title_and_message(title, message):
     editor = get_editor()
     pr_template = find_pull_request_template()
-    fd, bodyfilename = tempfile.mkstemp()
     if pr_template:
-        shutil.copy(pr_template, bodyfilename)
-    else:
-        with open(bodyfilename, "w") as body:
-            body.write(title + "\n\n")
-            body.write(message + "\n")
+        content = get_pr_template_message(pr_template)
+        return content
+
+    fd, bodyfilename = tempfile.mkstemp()
+    with open(bodyfilename, "w") as body:
+        body.write(title + "\n\n")
+        body.write(message + "\n")
     status = os.system(editor + " " + bodyfilename)
     if status != 0:
         raise RuntimeError("Editor exited with status code %d" % status)
