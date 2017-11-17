@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 from urllib import parse
+from uuid import uuid4
 
 import daiquiri
 import github
@@ -134,6 +135,13 @@ def git_get_log_titles(begin, end):
         ["git", "log", "--format=%s", "%s..%s" % (begin, end)],
         output=True)
     return list(split_and_remove_empty_lines(log))
+
+
+def git_branch_exist(branch, branches):
+    for repo_branch in branches:
+        if branch == repo_branch.name:
+            return True
+    return False
 
 
 def git_get_title_and_message(begin, end):
@@ -346,6 +354,14 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
 
     LOG.info("Force-pushing branch `%s' to remote `%s'",
              branch, remote_to_push)
+
+    fork = g.get_user(user).get_repo(repo_to_fork.name)
+    fork_branches = fork.get_branches()
+
+    if git_branch_exist(branch, fork_branches):
+        LOG.info("Create a tag for preserve older revision of changes")
+        _run_shell_command(["git", "tag", "{}-{}".format(branch, uuid4())])
+        _run_shell_command(["git", "push", remote_to_push, "--tags"])
 
     _run_shell_command(["git", "push", "-f", remote_to_push, branch])
 
