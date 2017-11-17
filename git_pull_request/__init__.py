@@ -166,7 +166,8 @@ def git_pull_request(target_remote=None, target_branch=None,
                      comment_on_update=True,
                      rebase=True,
                      force_editor=False,
-                     download=None):
+                     download=None,
+                     no_tag=False):
     branch = git_get_branch_name()
     if not branch:
         LOG.critical("Unable to find current branch")
@@ -234,7 +235,8 @@ def git_pull_request(target_remote=None, target_branch=None,
     else:
         fork_and_push_pull_request(g, repo, rebase, target_remote,
                                    target_branch, branch, user, title, message,
-                                   comment_on_update, comment, force_editor)
+                                   comment_on_update, comment,
+                                   force_editor, no_tag)
 
 
 def download_pull_request(g, repo, target_remote, pull_number):
@@ -311,7 +313,8 @@ def preserve_older_revision(branch, remote_to_push):
 
 def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
                                target_branch, branch, user, title, message,
-                               comment_on_update, comment, force_editor):
+                               comment_on_update, comment,
+                               force_editor, no_tag):
 
     g_user = g.get_user()
 
@@ -387,6 +390,8 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
             repo_to_fork.get_issue(pull.number).create_comment(comment)
             LOG.debug("Commented: \"%s\"", comment)
 
+        if no_tag:
+            return
         preserve_older_revision(branch, remote_to_push)
     else:
         # Create a pull request
@@ -420,6 +425,9 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
             return 50
         else:
             LOG.info("Pull-request created: " + pull.html_url)
+
+            if no_tag:
+                return
             preserve_older_revision(branch, remote_to_push)
 
 
@@ -473,6 +481,12 @@ def main():
         "--comment", "-C",
         help="Comment to publish when updating the pull-request"
     )
+    parser.add_argument(
+        "--no-tag",
+        action="store_true",
+        default=False,
+        help="Do not preserve older revision when push"
+    )
 
     args = parser.parse_args()
 
@@ -496,6 +510,7 @@ def main():
             rebase=not args.no_rebase,
             force_editor=args.force_editor,
             download=args.download,
+            no_tag=args.no_tag
         )
     except Exception as e:
         if args.debug:
