@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+from datetime import datetime
 import itertools
 import logging
 import netrc
@@ -132,6 +133,13 @@ def git_get_log_titles(begin, end):
         ["git", "log", "--format=%s", "%s..%s" % (begin, end)],
         output=True)
     return list(split_and_remove_empty_lines(log))
+
+
+def git_branch_exist(branch, branches):
+    for repo_branch in branches:
+        if branch == repo_branch.name:
+            return True
+    return False
 
 
 def git_get_title_and_message(begin, end):
@@ -313,6 +321,16 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
 
     LOG.info("Force-pushing branch `%s' to remote `%s'",
              branch, remote_to_push)
+
+    fork = g.get_user(user).get_repo(repo_to_fork.name)
+    fork_branches = fork.get_branches()
+
+    if git_branch_exist(branch, fork_branches):
+        LOG.info("Create a tag for preserve older revision of changes")
+        identifier = str(datetime.now()).replace(" ", "_")
+        _run_shell_command(["git", "tag", "{}-{}".format(branch, identifier)])
+        _run_shell_command(["git", "push", "--tags"])
+    return
 
     _run_shell_command(["git", "push", "-f", remote_to_push, branch])
 
