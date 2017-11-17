@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 from urllib import parse
+from uuid import uuid4
 
 import daiquiri
 import github
@@ -346,6 +347,12 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
 
     LOG.info("Force-pushing branch `%s' to remote `%s'",
              branch, remote_to_push)
+
+    tag = "{}-{}".format(branch, uuid4())
+    LOG.info("Create a tag ({}) to preserve older revision of changes".format(tag))
+    _run_shell_command(["git", "tag", tag])
+    _run_shell_command(["git", "push", remote_to_push, tag])
+    _run_shell_command(["git", "tag", "-d", tag])
 
     _run_shell_command(["git", "push", "-f", remote_to_push, branch])
 
