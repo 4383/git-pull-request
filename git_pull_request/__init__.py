@@ -138,7 +138,9 @@ def git_get_log_titles(begin, end):
 
 
 def git_branch_exist(branch, branches):
+    print(branch)
     for repo_branch in branches:
+        print(repo_branch)
         if branch == repo_branch.name:
             return True
     return False
@@ -363,6 +365,7 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
         _run_shell_command(["git", "tag", tag])
         _run_shell_command(["git", "push", remote_to_push, tag])
         _run_shell_command(["git", "tag", "-d", tag])
+    return
 
     _run_shell_command(["git", "push", "-f", remote_to_push, branch])
 
