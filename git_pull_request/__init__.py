@@ -357,7 +357,7 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
     LOG.info("Force-pushing branch `%s' to remote `%s'",
              branch, remote_to_push)
 
-    fork_branches = repo_to_fork.get_branches()
+    fork_branches = repo_forked.get_branches()
 
     if git_branch_exist(branch, fork_branches):
         tag = "{}-{}".format(branch, uuid4())
