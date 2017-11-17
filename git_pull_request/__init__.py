@@ -359,9 +359,10 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
     fork_branches = fork.get_branches()
 
     if git_branch_exist(branch, fork_branches):
-        LOG.info("Create a tag for preserve older revision of changes")
-        _run_shell_command(["git", "tag", "{}-{}".format(branch, uuid4())])
-        _run_shell_command(["git", "push", remote_to_push, "--tags"])
+        LOG.info("Create a tag to preserve older revision of changes")
+        tag = "{}-{}".format(branch, uuid4())
+        _run_shell_command(["git", "tag", tag])
+        _run_shell_command(["git", "push", remote_to_push, tag])
 
     _run_shell_command(["git", "push", "-f", remote_to_push, branch])
 
