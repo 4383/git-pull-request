@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 from urllib import parse
+from uuid import uuid4
 
 import daiquiri
 import github
@@ -300,6 +301,14 @@ def edit_title_and_message(title, message):
     return parse_pr_message(content)
 
 
+def preserve_older_revision(branch, remote_to_push):
+    tag = "{}-{}".format(branch, uuid4())
+    LOG.info("Create a tag ({}) to preserve older revision of changes".format(tag))
+    _run_shell_command(["git", "tag", tag])
+    _run_shell_command(["git", "push", remote_to_push, tag])
+    _run_shell_command(["git", "tag", "-d", tag])
+
+
 def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
                                target_branch, branch, user, title, message,
                                comment_on_update, comment, force_editor):
@@ -377,6 +386,8 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
             # getting it as an issue but pygithub does not allow that yet
             repo_to_fork.get_issue(pull.number).create_comment(comment)
             LOG.debug("Commented: \"%s\"", comment)
+
+        preserve_older_revision(branch, remote_to_push)
     else:
         # Create a pull request
         nb_of_commits, git_title, git_message = git_get_title_and_message(
@@ -409,6 +420,7 @@ def fork_and_push_pull_request(g, repo_to_fork, rebase, target_remote,
             return 50
         else:
             LOG.info("Pull-request created: " + pull.html_url)
+            preserve_older_revision(branch, remote_to_push)
 
 
 def _format_github_exception(action, exc):
